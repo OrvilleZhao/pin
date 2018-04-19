@@ -4,26 +4,27 @@ package pinlib
 import (
 	"fmt"
 	"io"
-	"net"
 	"sync"
-
-	"github.com/golang/snappy"
 )
 
 // Exchanger is the main struct used to enable IP packet transfer between 2 peers
 // This is the basis for functionality of both the client and server
 type Exchanger struct {
-	conn    net.Conn
+	conn    io.ReadWriter
 	iface   io.ReadWriter
 	running bool
 }
 
 // Start method starts the IP packet exchange between the configured interface and the TCP connection
 func (p *Exchanger) Start(wg *sync.WaitGroup) {
+	fmt.Println("New Exchanger made")
 	p.running = true
 	go p.outgoing()
 	p.incoming()
-	wg.Done()
+	if wg != nil {
+		wg.Done()
+	}
+	fmt.Println("New Exchanger deinit")
 }
 
 // incoming method reads IP data from the TCP connection, decompresses it and writes it to the configured tunneling interface.
@@ -31,8 +32,8 @@ func (p *Exchanger) incoming() {
 	// the buffer size is 1500 which should be the configured MTU for the tunneling interface.
 	packet := make([]byte, 1500)
 
-	// pinlib exchanger uses snappy compression which gave good results in transfer speeds.
-	rd := snappy.NewReader(p.conn)
+	// snappy decompressor interface
+	rd := (p.conn)
 
 	for p.running {
 		n, err := rd.Read(packet)
@@ -53,7 +54,7 @@ func (p *Exchanger) outgoing() {
 	packet := make([]byte, 1500)
 
 	// snappy compressor interface
-	wr := snappy.NewWriter(p.conn)
+	wr := (p.conn)
 
 	for p.running {
 		n, err := p.iface.Read(packet)

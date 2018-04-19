@@ -173,11 +173,11 @@ func SetupIPTables(ifaceName string) error {
 		fmt.Println("running command : ", strings.Join(append([]string{cmd}, cx...), " "))
 		err := exec.Command(cmd, cx...).Start()
 		if err != nil {
-			return err
+			return fmt.Errorf("Error while running iptables : %s", err)
 		}
 	}
 
-	return err
+	return nil
 }
 
 func SetupClient(client *pinlib.Client, addr, ifaceName, tunaddr, gw string) {

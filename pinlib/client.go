@@ -2,7 +2,6 @@ package pinlib
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"net"
 	"sync"
@@ -34,30 +33,30 @@ func NewClient(remote string, connections uint32, iface io.ReadWriter) (*Client,
 func (c *Client) Start() error {
 	// wait group to wait for all go routines to complete
 	wg := &sync.WaitGroup{}
-
-	made := 0
-	for i := uint32(0); i < c.connections; i++ {
-		conn, err := net.Dial("tcp", c.Remote)
-		if err != nil {
-			fmt.Println(err)
-			continue
-		}
-
-		ex := &Exchanger{conn: conn, iface: c.iface}
-		wg.Add(1)
-		go ex.Start(wg)
-		made++
+	ServerAddr, err := net.ResolveUDPAddr("udp", c.Remote)
+	if err != nil {
+		return err
 	}
-	fmt.Println("Connections made : ", made)
 
-	// this is where the hook function is run.
-	// Generally for a pinlib based VPN program, this Hook function should be configured with IP routing and device setup
-	err := c.Hook()
+	conn, err := net.DialUDP("udp", nil, ServerAddr)
+	if err != nil {
+		return err
+	}
+
+	conn.Write([]byte("DUMMY"))
+
+	ex := &Exchanger{conn: conn, iface: c.iface}
+
+	wg.Add(1)
+
+	go ex.Start(wg)
+
+	err = c.Hook()
 	if err != nil {
 		return err
 	}
 
 	wg.Wait()
-	fmt.Println("Connections Done : ", made)
+
 	return nil
 }
